@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: sports-signals-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: THE_ODDS_API_KEY
+        sync: false
+      - key: PORT
+        value: 4000
