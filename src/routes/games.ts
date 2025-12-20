@@ -17,6 +17,7 @@ router.get('/', async (req, res) => {
       FROM games g
       LEFT JOIN predictions p ON p.game_id = g.id
       WHERE g.status = $1
+        AND g.starts_at > NOW()  -- Apenas jogos futuros
     `;
 
     const params: any[] = [status];
