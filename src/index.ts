@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { pool } from './db';
 import syncRouter from './routes/sync';
+import liveRouter from './routes/live';
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ app.use('/api/predictions', predictionsRouter);
 app.use('/api/performance', performanceRouter);
 app.use('/api/games', gamesRouter);
 app.use('/api/sync', syncRouter);
+app.use('/api/live', liveRouter);
 
 // 404
 app.use((_req, res) => {
