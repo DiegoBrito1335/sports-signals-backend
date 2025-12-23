@@ -1,13 +1,7 @@
 import axios from 'axios';
 
-const API_KEY = process.env.API_SPORTS_KEY;
-const NBA_API = 'https://v1.basketball.api-sports.io';
-const NFL_API = 'https://v1.american-football.api-sports.io';
-
-const headers = {
-  'x-rapidapi-key': API_KEY,
-  'x-rapidapi-host': 'v1.basketball.api-sports.io'
-};
+const ESPN_NBA_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
+const ESPN_NFL_URL = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
 
 interface LiveGame {
   id: string;
@@ -17,44 +11,47 @@ interface LiveGame {
   home_score: number;
   away_score: number;
   status: string;
-  quarter: string;
+  period: string;
   time_remaining: string;
+  is_live: boolean;
 }
 
 // Buscar jogos ao vivo da NBA
 export async function fetchNBALiveGames(): Promise<LiveGame[]> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const response = await axios.get(ESPN_NBA_URL);
+    const events = response.data.events || [];
     
-    const response = await axios.get(`${NBA_API}/games`, {
-      params: {
-        league: 1, // NBA = 1
-        season: '2024-2025',
-        date: today
-      },
-      headers: {
-        'x-rapidapi-key': API_KEY,
-        'x-rapidapi-host': 'v1.basketball.api-sports.io'
-      }
-    });
-
-    const games = response.data.response || [];
+    const games: LiveGame[] = [];
     
-    return games
-      .filter((g: any) => g.status.short === 'LIVE' || g.status.short === 'Q1' || g.status.short === 'Q2' || g.status.short === 'Q3' || g.status.short === 'Q4')
-      .map((g: any) => ({
-        id: g.id.toString(),
+    for (const event of events) {
+      const competition = event.competitions[0];
+      const status = competition.status;
+      
+      // Apenas jogos ao vivo ou finalizados recentemente
+      if (!['in', 'post'].includes(status.type.state)) continue;
+      
+      const homeTeam = competition.competitors.find((t: any) => t.homeAway === 'home');
+      const awayTeam = competition.competitors.find((t: any) => t.homeAway === 'away');
+      
+      games.push({
+        id: event.id,
         league: 'NBA',
-        home_team: g.teams.home.name,
-        away_team: g.teams.away.name,
-        home_score: g.scores.home.total || 0,
-        away_score: g.scores.away.total || 0,
-        status: g.status.short,
-        quarter: g.status.short,
-        time_remaining: g.status.timer || '0:00'
-      }));
+        home_team: homeTeam?.team?.displayName || 'Unknown',
+        away_team: awayTeam?.team?.displayName || 'Unknown',
+        home_score: parseInt(homeTeam?.score || '0'),
+        away_score: parseInt(awayTeam?.score || '0'),
+        status: status.type.description,
+        period: status.period ? `Q${status.period}` : 'Final',
+        time_remaining: status.displayClock || '0:00',
+        is_live: status.type.state === 'in'
+      });
+    }
+    
+    console.log(`✅ Fetched ${games.length} NBA games from ESPN`);
+    return games;
   } catch (error: any) {
-    console.error('❌ Error fetching NBA live scores:', error.message);
+    console.error('❌ Error fetching NBA games from ESPN:', error.message);
     return [];
   }
 }
@@ -62,37 +59,39 @@ export async function fetchNBALiveGames(): Promise<LiveGame[]> {
 // Buscar jogos ao vivo da NFL
 export async function fetchNFLLiveGames(): Promise<LiveGame[]> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const response = await axios.get(ESPN_NFL_URL);
+    const events = response.data.events || [];
     
-    const response = await axios.get(`${NFL_API}/games`, {
-      params: {
-        league: 1, // NFL = 1
-        season: '2024',
-        date: today
-      },
-      headers: {
-        'x-rapidapi-key': API_KEY,
-        'x-rapidapi-host': 'v1.american-football.api-sports.io'
-      }
-    });
-
-    const games = response.data.response || [];
+    const games: LiveGame[] = [];
     
-    return games
-      .filter((g: any) => g.game.status.short === 'LIVE' || g.game.status.short.includes('Q'))
-      .map((g: any) => ({
-        id: g.game.id.toString(),
+    for (const event of events) {
+      const competition = event.competitions[0];
+      const status = competition.status;
+      
+      // Apenas jogos ao vivo ou finalizados recentemente
+      if (!['in', 'post'].includes(status.type.state)) continue;
+      
+      const homeTeam = competition.competitors.find((t: any) => t.homeAway === 'home');
+      const awayTeam = competition.competitors.find((t: any) => t.homeAway === 'away');
+      
+      games.push({
+        id: event.id,
         league: 'NFL',
-        home_team: g.teams.home.name,
-        away_team: g.teams.away.name,
-        home_score: g.scores.home.total || 0,
-        away_score: g.scores.away.total || 0,
-        status: g.game.status.short,
-        quarter: g.game.status.short,
-        time_remaining: g.game.status.timer || '0:00'
-      }));
+        home_team: homeTeam?.team?.displayName || 'Unknown',
+        away_team: awayTeam?.team?.displayName || 'Unknown',
+        home_score: parseInt(homeTeam?.score || '0'),
+        away_score: parseInt(awayTeam?.score || '0'),
+        status: status.type.description,
+        period: status.period ? `${status.period}Q` : 'Final',
+        time_remaining: status.displayClock || '0:00',
+        is_live: status.type.state === 'in'
+      });
+    }
+    
+    console.log(`✅ Fetched ${games.length} NFL games from ESPN`);
+    return games;
   } catch (error: any) {
-    console.error('❌ Error fetching NFL live scores:', error.message);
+    console.error('❌ Error fetching NFL games from ESPN:', error.message);
     return [];
   }
 }
@@ -104,5 +103,8 @@ export async function fetchAllLiveGames(): Promise<LiveGame[]> {
     fetchNFLLiveGames()
   ]);
   
-  return [...nba, ...nfl];
+  const allGames = [...nba, ...nfl];
+  console.log(`📊 Total live games: ${allGames.length} (NBA: ${nba.length}, NFL: ${nfl.length})`);
+  
+  return allGames;
 }
