@@ -3,7 +3,7 @@ import { query } from '../db';
 
 const router = Router();
 
-interface ValueBet {
+interface ValueBetRow {
   game_id: string;
   market: string;
   side: string | null;
@@ -50,20 +50,20 @@ router.get('/', async (req, res) => {
 
     sqlQuery += ` ORDER BY s.ev DESC LIMIT 100`;
 
-    const rows = await query<ValueBet>(sqlQuery, params);
+    const rows = await query<ValueBetRow>(sqlQuery, params);
 
-    // Estatísticas
     const stats = {
       total_opportunities: rows.length,
-      avg_ev: rows.length > 0
-        ? rows.reduce((sum, r) => sum + r.ev, 0) / rows.length
-        : 0,
-      max_ev: rows.length > 0 ? Math.max(...rows.map(r => r.ev)) : 0
+      avg_ev:
+        rows.length > 0
+          ? rows.reduce((sum, r) => sum + r.ev, 0) / rows.length
+          : 0,
+      max_ev: rows.length > 0 ? Math.max(...rows.map(r => r.ev)) : 0,
     };
 
     res.json({
       opportunities: rows,
-      stats
+      stats,
     });
   } catch (error) {
     console.error('Error fetching value finder:', error);
