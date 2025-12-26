@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { fetchOdds } from './services/oddsApi';
 import { query } from '../db';
-
 import {
   buildQbPassingSignals,
   QbStats,
@@ -64,7 +63,7 @@ async function saveQbPropSignal(signal: QbPropSignal) {
   );
 }
 
-// Essa função você chama quando tiver odds + stats do QB e defesa
+// Chamar quando tiver odds + stats do QB e defesa
 async function processQbPropsForGame(
   qbStats: QbStats,
   defStats: DefenseVsPassStats,
@@ -76,7 +75,6 @@ async function processQbPropsForGame(
     odds,
   });
 
-  // Exemplo: salvar apenas props com EV >= 3%
   if (overSignal.ev >= 0.03) {
     await saveQbPropSignal(overSignal);
   }
@@ -177,18 +175,18 @@ router.post('/games', async (_req, res) => {
         }
       }
 
-      // Aqui é o ponto para processar props, quando você tiver odds de props:
-      // Exemplo (esquemático):
-      //
-      // const qbStats: QbStats = ...; // buscar em alguma API de stats
-      // const defStats: DefenseVsPassStats = ...; // defesa adversária
-      // const qbPropOdds: QbPropOdds = ...; // viria de outra chamada na Odds API
+      // Aqui você vai encaixar props quando tiver dados:
+      // const qbStats: QbStats = ...;
+      // const defStats: DefenseVsPassStats = ...;
+      // const qbPropOdds: QbPropOdds = ...;
       // await processQbPropsForGame(qbStats, defStats, qbPropOdds);
 
       saved++;
     }
 
-    console.log(`✅ Sync complete: ${saved} saved, ${skipped} skipped (past games)`);
+    console.log(
+      `✅ Sync complete: ${saved} saved, ${skipped} skipped (past games)`,
+    );
 
     res.json({
       success: true,
