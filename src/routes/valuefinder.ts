@@ -1,25 +1,8 @@
 import { Router } from 'express';
 import { query } from '../db';
+import { SignalRow } from '../types';
 
 const router = Router();
-
-interface ValueBetRow {
-  game_id: string;
-  market: string;
-  side: string | null;
-  over_under: string | null;
-  line: number | null;
-  bookmaker: string;
-  odds: number;
-  model_prob: number;
-  implied_prob: number;
-  ev: number;
-  roi_expected: number;
-  starts_at: string;
-  league: string;
-  home_team: string;
-  away_team: string;
-}
 
 // GET /api/valuefinder?min_ev=0.05&sport=NBA
 router.get('/', async (req, res) => {
@@ -50,7 +33,12 @@ router.get('/', async (req, res) => {
 
     sqlQuery += ` ORDER BY s.ev DESC LIMIT 100`;
 
-    const rows = await query<ValueBetRow>(sqlQuery, params);
+    const rows = await query<SignalRow & {
+      starts_at: string;
+      league: string;
+      home_team: string;
+      away_team: string;
+    }>(sqlQuery, params);
 
     const stats = {
       total_opportunities: rows.length,

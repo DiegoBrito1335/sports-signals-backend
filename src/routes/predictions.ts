@@ -1,5 +1,7 @@
+// src/routes/predictions.ts
 import { Router } from 'express';
 import { query } from '../db';
+import { SignalRow } from '../types';
 
 const router = Router();
 
@@ -24,20 +26,7 @@ interface PredictionRow {
   league: string;
 }
 
-interface SignalRow {
-  game_id: string;
-  market: string;
-  side: string | null;
-  over_under: string | null;
-  line: number | null;
-  bookmaker: string;
-  odds: number;
-  model_prob: number;
-  implied_prob: number;
-  ev: number;
-  roi_expected: number;
-}
-
+// GET /api/predictions/:gameId
 router.get('/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
