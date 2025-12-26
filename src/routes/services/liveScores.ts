@@ -29,7 +29,7 @@ export async function fetchNBALiveGames(): Promise<LiveGame[]> {
       const status = competition.status;
       
       // Apenas jogos ao vivo ou finalizados recentemente
-      if (!['in', 'post'].includes(status.type.state)) continue;
+      if (status.type.state !== 'in') continue;
       
       const homeTeam = competition.competitors.find((t: any) => t.homeAway === 'home');
       const awayTeam = competition.competitors.find((t: any) => t.homeAway === 'away');
@@ -69,7 +69,7 @@ export async function fetchNFLLiveGames(): Promise<LiveGame[]> {
       const status = competition.status;
       
       // Apenas jogos ao vivo ou finalizados recentemente
-      if (!['in', 'post'].includes(status.type.state)) continue;
+      if (status.type.state !== 'in') continue;
       
       const homeTeam = competition.competitors.find((t: any) => t.homeAway === 'home');
       const awayTeam = competition.competitors.find((t: any) => t.homeAway === 'away');
