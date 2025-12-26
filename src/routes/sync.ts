@@ -136,22 +136,22 @@ router.post('/games', async (_req, res) => {
         for (const bookmaker of game.bookmakers) {
           for (const market of bookmaker.markets) {
             for (const outcome of market.outcomes) {
-              let marketType = 'ML';
+              let marketType: 'ML' | 'SPREAD' | 'TOTAL' = 'ML';
               let side: string | null = null;
               let overUnder: string | null = null;
-              let line: number | null = null;
+              let line: number | null = null; 
 
               if (market.key === 'h2h') {
-                marketType = 'ML';
-                side = outcome.name === game.home_team ? 'home' : 'away';
+               marketType = 'ML';
+               side = outcome.name === game.home_team ? 'home' : 'away';
               } else if (market.key === 'spreads') {
-                marketType = 'SPREAD';
-                side = outcome.name === game.home_team ? 'home' : 'away';
-                line = outcome.point;
+               marketType = 'SPREAD';
+               side = outcome.name === game.home_team ? 'home' : 'away';
+               line = outcome.point ?? null;       // <– garante number | null
               } else if (market.key === 'totals') {
-                marketType = 'TOTAL';
-                overUnder = outcome.name.toLowerCase();
-                line = outcome.point;
+               marketType = 'TOTAL';
+               overUnder = outcome.name.toLowerCase();
+               line = outcome.point ?? null;       // <– idem
               }
 
               await query(
@@ -175,7 +175,7 @@ router.post('/games', async (_req, res) => {
         }
       }
 
-      // Aqui você vai encaixar props quando tiver dados:
+      // Aqui você vai encaixar props quando tiver dados (QB/WR/RB):
       // const qbStats: QbStats = ...;
       // const defStats: DefenseVsPassStats = ...;
       // const qbPropOdds: QbPropOdds = ...;
