@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { pool } from './db';
 import syncRouter from './routes/sync';
 import liveRouter from './routes/live';
+import propsRouter from './routes/props';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/valuefinder', valueFinderRouter);
 app.use('/api/predictions', predictionsRouter);
 app.use('/api/performance', performanceRouter);
 app.use('/api/games', gamesRouter);
+app.use('/api/props', propsRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/live', liveRouter);
 
