@@ -5,6 +5,8 @@ import { pool } from './db';
 import syncRouter from './routes/sync';
 import liveRouter from './routes/live';
 import propsRouter from './routes/props';
+import syncPropsRouter from './routes/syncProps';
+
 
 dotenv.config();
 
@@ -60,6 +62,8 @@ app.use('/api/games', gamesRouter);
 app.use('/api/props', propsRouter);
 app.use('/api/sync', syncRouter);
 app.use('/api/live', liveRouter);
+app.use('/api/sync', syncPropsRouter);  // novo, rota /api/sync/props
+
 
 // 404
 app.use((_req, res) => {
