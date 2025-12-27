@@ -11,14 +11,14 @@ type Game = {
 };
 
 type NewSignal = {
-  game_id: string;
-  market: 'PROP';
-  prop_type: string;
-  side: string;
-  line: number;  // ✅ Mudado de prop_line para line
-  odds: number;
-  ev: number;
-  bookmaker: string;
+  id_do_jogo: string;        // game_id em português
+  mercado: 'PROP';           // market em português
+  prop_type: string;         // tipo de prop (mantém inglês)
+  lado: string;              // side em português
+  linha: number;             // line em português
+  chances: number;           // odds em português
+  ev: number;                // mantém ev
+  casa_de_apostas: string;   // bookmaker em português
   player_name: string | null;
 };
 
@@ -32,7 +32,7 @@ function mapPropType(marketKey: string): string {
 }
 
 // ✅ Calcula EV com probabilidades ajustadas por tipo de prop
-function calcEv(odds: number, propType: string): number {
+function calcEv(chances: number, propType: string): number {
   // Probabilidades mais realistas por tipo de prop
   let modelProb = 0.52; // Default (50-50 com margem)
   
@@ -43,7 +43,7 @@ function calcEv(odds: number, propType: string): number {
     modelProb = 0.56;
   }
   
-  return modelProb * odds - 1;
+  return modelProb * chances - 1;
 }
 
 // ✅ Extrai nome do jogador do campo description ou name
@@ -77,7 +77,7 @@ export async function syncPlayerPropsForGame(game: Game, sportKey: string) {
   const event = events.find((e: any) => e.id === game.external_id);
   
   if (!event) {
-    console.log('⚠️ Game not found in Odds API response');
+    console.log('⚠️  Game not found in Odds API response');
     console.log('   Looking for external_id:', game.external_id);
     console.log('   Available event IDs:', events.map((e: any) => e.id).slice(0, 5));
     return;
@@ -94,26 +94,26 @@ export async function syncPlayerPropsForGame(game: Game, sportKey: string) {
       const propType = mapPropType(market.key);
       
       for (const outcome of market.outcomes ?? []) {
-        const line = outcome.point ?? null;
-        const odds = Number(outcome.price);
+        const linha = outcome.point ?? null;
+        const chances = Number(outcome.price);
         
-        if (!odds || !line) continue;
+        if (!chances || !linha) continue;
 
-        const ev = calcEv(odds, propType);
+        const ev = calcEv(chances, propType);
         if (ev <= 0.03) continue; // Apenas EV > 3%
 
         // ✅ Extrai nome do jogador corretamente
         const playerName = extractPlayerName(outcome);
 
         inserts.push({
-          game_id: game.id,
-          market: 'PROP',
+          id_do_jogo: game.id,
+          mercado: 'PROP',
           prop_type: propType,
-          side: outcome.name?.toLowerCase().includes('over') ? 'over' : 'under',
-          line: line,  // ✅ Campo correto
-          odds,
+          lado: outcome.name?.toLowerCase().includes('over') ? 'over' : 'under',
+          linha: linha,
+          chances,
           ev,
-          bookmaker: bookmaker.key,
+          casa_de_apostas: bookmaker.key,
           player_name: playerName,
         });
       }
@@ -121,22 +121,22 @@ export async function syncPlayerPropsForGame(game: Game, sportKey: string) {
   }
 
   if (inserts.length === 0) {
-    console.log('⚠️ No props with EV > 3% found for this game');
+    console.log('⚠️  No props with EV > 3% found for this game');
     return;
   }
 
   console.log(`💾 Inserting ${inserts.length} props into database`);
 
-  // ✅ Colunas corretas
+  // ✅ Colunas em PORTUGUÊS (conforme tabela signals)
   const cols = [
-    'game_id',
-    'market',
+    'id_do_jogo',
+    'mercado',
     'prop_type',
-    'side',
-    'line',        // ✅ Mudado de prop_line
-    'odds',
+    'lado',
+    'linha',
+    'chances',
     'ev',
-    'bookmaker',
+    '"casa de apostas"',  // ✅ Nome com espaço precisa de aspas
     'player_name',
   ];
 
@@ -149,14 +149,14 @@ export async function syncPlayerPropsForGame(game: Game, sportKey: string) {
       `(${cols.map((_, i) => `$${baseIndex + i + 1}`).join(', ')})`,
     );
     values.push(
-      row.game_id,
-      row.market,
+      row.id_do_jogo,
+      row.mercado,
       row.prop_type,
-      row.side,
-      row.line,      // ✅ Campo correto
-      row.odds,
+      row.lado,
+      row.linha,
+      row.chances,
       row.ev,
-      row.bookmaker,
+      row.casa_de_apostas,
       row.player_name,
     );
   });

@@ -10,6 +10,7 @@ import liveValuefinderRouter from './routes/liveValuefinder';
 
 
 
+
 dotenv.config();
 
 const app = express();
@@ -66,6 +67,7 @@ app.use('/api/sync', syncRouter);
 app.use('/api/live', liveRouter);
 app.use('/api/sync', syncPropsRouter);  // novo, rota /api/sync/props
 app.use('/api/live/valuefinder', liveValuefinderRouter);
+app.use('/api/sync', syncPropsRouter);
 
 
 // 404
