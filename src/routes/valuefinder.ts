@@ -1,61 +1,80 @@
+// src/routes/liveValuefinder.ts
 import { Router } from 'express';
 import { query } from '../db';
 import { SignalRow } from '../types';
 
 const router = Router();
 
-// GET /api/valuefinder?min_ev=0.05&sport=NBA
+// GET /api/live/valuefinder?min_ev=0.03&sport=NBA
+// Retorna a melhor aposta do dia (maior EV) para cada jogo do dia corrente.
 router.get('/', async (req, res) => {
   try {
-    const minEv = Number(req.query.min_ev ?? 0.05);
+    const minEv = Number(req.query.min_ev ?? 0.03);
     const sport = req.query.sport as string | undefined;
 
-    let sqlQuery = `
-      SELECT
-        s.*,
-        g.starts_at,
-        g.league,
-        g.home_team,
-        g.away_team
-      FROM signals s
-      JOIN games g ON g.id = s.game_id
-      WHERE s.ev >= $1
-        AND g.status = 'scheduled'
-        AND g.starts_at > NOW()
-    `;
-
     const params: any[] = [minEv];
+    let sportFilter = '';
 
     if (sport) {
-      sqlQuery += ` AND g.league = $2`;
       params.push(sport);
+      sportFilter = 'AND g.league = $2';
     }
 
-    sqlQuery += ` ORDER BY s.ev DESC LIMIT 100`;
+    const sql = `
+      WITH ranked_signals AS (
+        SELECT
+          s.*,
+          g.starts_at,
+          g.league,
+          g.home_team,
+          g.away_team,
+          g.home_score,
+          g.away_score,
+          g.status,
+          ROW_NUMBER() OVER (
+            PARTITION BY s.game_id
+            ORDER BY s.ev DESC
+          ) AS rn
+        FROM signals s
+        JOIN games g ON g.id = s.game_id
+        WHERE
+          s.ev >= $1
+          ${sportFilter}
+          AND g.starts_at::date = CURRENT_DATE
+      )
+      SELECT *
+      FROM ranked_signals
+      WHERE rn = 1
+      ORDER BY starts_at ASC, ev DESC
+      LIMIT 200
+    `;
 
     const rows = await query<SignalRow & {
       starts_at: string;
       league: string;
       home_team: string;
       away_team: string;
-    }>(sqlQuery, params);
-
-    const stats = {
-      total_opportunities: rows.length,
-      avg_ev:
-        rows.length > 0
-          ? rows.reduce((sum, r) => sum + r.ev, 0) / rows.length
-          : 0,
-      max_ev: rows.length > 0 ? Math.max(...rows.map(r => r.ev)) : 0,
-    };
+      home_score: number | null;
+      away_score: number | null;
+      status: string;
+      rn: number;
+    }>(sql, params);
 
     res.json({
+      success: true,
       opportunities: rows,
-      stats,
+      stats: {
+        total_games: rows.length,
+        min_ev: minEv,
+      },
     });
-  } catch (error) {
-    console.error('Error fetching value finder:', error);
-    res.status(500).json({ error: 'Failed to fetch value bets' });
+  } catch (error: any) {
+    console.error('Error fetching daily best bets:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch daily best bets',
+      message: error.message,
+    });
   }
 });
 
